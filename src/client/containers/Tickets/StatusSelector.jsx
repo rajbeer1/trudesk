@@ -20,6 +20,7 @@ import { connect } from 'react-redux'
 
 import { TICKETS_STATUS_SET, TICKETS_UI_STATUS_UPDATE } from 'serverSocket/socketEventConsts'
 import { fetchTicketStatus } from 'actions/tickets'
+import helpers from 'lib/helpers'
 
 @observer
 class StatusSelector extends React.Component {
@@ -88,6 +89,24 @@ class StatusSelector extends React.Component {
       ? this.props.ticketStatuses.find(s => s.get('_id') === this.status)
       : null
 
+    // Filter statuses based on permissions
+    const canCloseTicket = helpers.canUser('tickets:close')
+    const canEditOpenTicket = helpers.canUser('tickets:editopen')
+    console.log('User role grants:', window.trudeskSessionService?.getUser()?.role?.grants || 'No grants found')
+    
+    const filteredStatuses = this.props.ticketStatuses
+      ? this.props.ticketStatuses.filter(s => {
+          console.log('Status:', s.get('name'), 'isResolved:', s.get('isResolved'))
+          // If status is resolved (close status) and user doesn't have close permission, hide it
+          if (s.get('isResolved') === true) {
+            return canCloseTicket;
+          } else {
+            // For open statuses, check edit open permission
+            return canEditOpenTicket;
+          } 
+        })
+      : this.props.ticketStatuses
+
     return (
       <div className='floating-ticket-status'>
         <div
@@ -110,10 +129,10 @@ class StatusSelector extends React.Component {
           id={'statusSelect'}
           ref={r => (this.dropMenu = r)}
           className='hide'
-          style={{ height: 25 * this.props.ticketStatuses.size + 25 }}
+          style={{ height: 25 * filteredStatuses.size + 25 }}
         >
           <ul>
-            {this.props.ticketStatuses.map(
+            {filteredStatuses.map(
               s =>
                 s && (
                   <li

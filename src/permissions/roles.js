@@ -51,7 +51,7 @@ var roles = {
     allowedAction: [
       'mod:*',
       'dashboard:*',
-      'ticket:create edit view attachment removeAttachment',
+      'tickets:create edit view attachment removeAttachment close editopen',
       'comment:*',
       'notes:*',
       'reports:view'
@@ -62,7 +62,7 @@ var roles = {
     name: 'Support',
     description: 'Support User',
     allowedAction: [
-      'ticket:*',
+      'tickets:*',
       'dashboard:*',
       'accounts:create edit view delete',
       'comment:editSelf create delete',
@@ -75,7 +75,7 @@ var roles = {
     id: 'user',
     name: 'User',
     description: 'User',
-    allowedAction: ['ticket:create editSelf attachment print viewall', 'comment:create editSelf']
+    allowedAction: ['tickets:create editSelf attachment print viewall close editopen', 'comment:create editSelf']
   }
 }
 
