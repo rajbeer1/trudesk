@@ -277,17 +277,6 @@ class SingleTicketContainer extends React.Component {
     const hasTicketUpdate = this.ticket && this.ticket.status.isResolved === false && helpers.canUser('tickets:update')
     const statusObj = this.ticket ? this.props.ticketStatuses.find(s => s.get('_id') === this.ticket.status._id) : null
 
-    const hasTicketStatusUpdate = () => {
-      const isAgent = this.props.sessionUser ? this.props.sessionUser.role.isAgent : false
-      const isAdmin = this.props.sessionUser ? this.props.sessionUser.role.isAdmin : false
-      if (isAgent || isAdmin) {
-        return helpers.canUser('tickets:update')
-      } else {
-        if (!this.ticket || !this.props.sessionUser) return false
-        return helpers.hasPermOverRole(this.ticket.owner.role, this.props.sessionUser.role, 'tickets:update', false)
-      }
-    }
-
     return (
       <div className={'uk-clearfix uk-position-relative'} style={{ width: '100%', height: '100vh' }}>
         {!this.ticket && <SpinLoader active={true} />}
@@ -307,7 +296,7 @@ class SingleTicketContainer extends React.Component {
                     onStatusChange={status => {
                       this.ticket.status = status
                     }}
-                    hasPerm={hasTicketStatusUpdate()}
+                    hasPerm={hasTicketUpdate}
                   />
                 </div>
                 {/*  Left Side */}

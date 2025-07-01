@@ -462,7 +462,7 @@ apiTickets.create = function (req, res) {
         tIssue = sanitizeHtml(tIssue).trim()
         ticket.issue = xss(marked.parse(tIssue))
         ticket.history = [HistoryItem]
-        ticket.subscribers = [user._id]
+        ticket.subscribers = ticket.subscribers?ticket.subscribers:[user?._id]
 
         ticket.save(function (err, t) {
           if (err) return done({ status: 400, error: err })
