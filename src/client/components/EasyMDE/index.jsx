@@ -91,14 +91,77 @@ class EasyMDE extends React.Component {
           urlText: '![Image]({filename})'
         })
 
+        // Store upload configuration in textarea data attributes
+        $(self.element).data('uploadUrl', self.props.inlineImageUploadUrl)
+        $(self.element).data('uploadHeaders', self.props.inlineImageUploadHeaders)
+        $(self.element).data('showAttachmentButton', self.props.showAttachmentButton)
+        
         EasyMDE.attachFileDesc(self.element)
       }
     }
   }
 
-  componentDidUpdate () {
+  componentDidUpdate (prevProps) {
     if (this.easymde && this.easymde.value() !== this.state.value) {
       this.easymde.value(this.state.value)
+    }
+    
+    // Re-attach file handlers if props changed
+    if (prevProps.allowImageUpload !== this.props.allowImageUpload ||
+        prevProps.inlineImageUploadUrl !== this.props.inlineImageUploadUrl ||
+        prevProps.showAttachmentButton !== this.props.showAttachmentButton) {
+      
+      // Remove existing handlers
+      const $el = $(this.element)
+      $el.removeClass('hasInlineUpload')
+      $el.siblings('.editor-statusbar').find('.attachFileDesc').remove()
+      
+      // Re-attach if needed
+      if (this.easymde && this.props.allowImageUpload) {
+        if (!this.props.inlineImageUploadUrl) return Log.error('Invalid inlineImageUploadUrl Prop.')
+
+        if (!$el.hasClass('hasInlineUpload')) {
+          $el.addClass('hasInlineUpload')
+          window.inlineAttachment.editors.codemirror4.attach(this.easymde.codemirror, {
+            onFileUploadResponse: function (xhr) {
+              const result = JSON.parse(xhr.responseText)
+
+              const filename = result[this.settings.jsonFieldName]
+
+              if (result && filename) {
+                let newValue
+                if (typeof this.settings.urlText === 'function') {
+                  newValue = this.settings.urlText.call(this, filename, result)
+                } else {
+                  newValue = this.settings.urlText.replace(this.filenameTag, filename)
+                }
+
+                const text = this.editor.getValue().replace(this.lastValue, newValue)
+                this.editor.setValue(text)
+                this.settings.onFileUploaded.call(this, filename)
+              }
+              return false
+            },
+            onFileUploadError: function (xhr) {
+              const result = xhr.responseText
+              const text = this.editor.getValue() + ' ' + result
+              this.editor.setValue(text)
+            },
+            extraHeaders: this.props.inlineImageUploadHeaders,
+            errorText: 'Error uploading file: ',
+            uploadUrl: this.props.inlineImageUploadUrl,
+            jsonFieldName: 'filename',
+            urlText: '![Image]({filename})'
+          })
+
+          // Store upload configuration in textarea data attributes
+          $(this.element).data('uploadUrl', this.props.inlineImageUploadUrl)
+          $(this.element).data('uploadHeaders', this.props.inlineImageUploadHeaders)
+          $(this.element).data('showAttachmentButton', this.props.showAttachmentButton)
+          
+          EasyMDE.attachFileDesc(this.element)
+        }
+      }
     }
   }
 
@@ -107,6 +170,11 @@ class EasyMDE extends React.Component {
       this.easymde.codemirror.off('change')
       this.easymde = null
     }
+    
+    // Clean up file input handlers
+    const $el = $(this.element)
+    $el.siblings('.editor-statusbar').find('.attachFileDesc').remove()
+    $el.removeClass('hasInlineUpload')
   }
 
   static getDerivedStateFromProps (nextProps, state) {
@@ -121,14 +189,112 @@ class EasyMDE extends React.Component {
   static attachFileDesc (textarea) {
     const $el = $(textarea)
     const attachFileDiv = $('<div></div>')
+    
+    // Create file input element
+    const fileInput = $('<input type="file" accept="image/*" style="display: none;" />')
+    
+    // Create attachment button
+    const attachButton = $('<button type="button" class="attach-button" style="background: #007cba; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 10px; font-size: 12px;">')
+      .html('<i class="material-icons" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">attach_file</i>Attach Files')
+    
+    // Create description text
+    const descriptionText = $('<span style="font-size: 12px; color: #666;">Attach images and PDFs by clicking the button, dragging & dropping, or pasting from clipboard.</span>')
+    
     attachFileDiv
       .addClass('attachFileDesc')
-      .html('<p>Attach images by dragging & dropping or pasting from clipboard.</p>')
+      .append(fileInput)
+    
+    // Check if attachment button should be shown
+    const showAttachmentButton = $el.data('showAttachmentButton') !== false
+    if (showAttachmentButton) {
+      attachFileDiv.append(attachButton)
+    }
+    
+    attachFileDiv.append(descriptionText)
+    
     $el.siblings('.CodeMirror').addClass('hasFileDesc')
     $el
       .siblings('.editor-statusbar')
       .addClass('hasFileDesc')
       .prepend(attachFileDiv)
+    
+    // Handle button click to trigger file input
+    attachButton.on('click', function() {
+      fileInput.click()
+    })
+    
+    // Handle file selection
+    fileInput.on('change', function(e) {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        EasyMDE.handleFileSelection(files, textarea)
+        // Clear the file input after selection to allow re-uploading the same file
+        $(this).val('')
+      }
+    })
+  }
+  
+  static handleFileSelection (files, textarea) {
+    const $el = $(textarea)
+    
+    Array.from(files).forEach(file => {
+      // Check if file is image or PDF
+      const isImage = file.type.startsWith('image/')
+      const isPDF = file.type === 'application/pdf'
+      
+      if (!isImage && !isPDF) {
+        console.warn('Unsupported file type:', file.type)
+        return
+      }
+      
+      // Create FormData for upload
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      // Get upload URL from the component instance
+      const uploadUrl = $el.data('uploadUrl') || '/api/upload'
+      const headers = $el.data('uploadHeaders') || {}
+      
+      // Upload file
+      $.ajax({
+        url: uploadUrl,
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        headers: headers,
+        success: function(response) {
+          const filename = response.filename || response.url || file.name
+          let markdownText
+          
+          if (isImage) {
+            markdownText = `![${file.name}](${filename})`
+          } else if (isPDF) {
+            markdownText = `[${file.name}](${filename})`
+          }
+          
+          // Insert markdown text at cursor position
+          const codeMirrorElement = $el.siblings('.CodeMirror')[0]
+          if (codeMirrorElement && codeMirrorElement.CodeMirror) {
+            const editor = codeMirrorElement.CodeMirror
+            const cursor = editor.getCursor()
+            editor.replaceRange(markdownText + '\n', cursor)
+            
+            // Trigger change event to update React state
+            $el.trigger('change')
+          } else {
+            // Fallback: append to the end of the textarea
+            const currentValue = $el.val()
+            $el.val(currentValue + '\n' + markdownText)
+            $el.trigger('change')
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error('File upload failed:', error)
+          alert('Failed to upload file: ' + error)
+        }
+      })
+    })
   }
 
   onTextareaChanged (value) {
@@ -232,13 +398,15 @@ EasyMDE.propTypes = {
   allowImageUpload: PropTypes.bool,
   inlineImageUploadUrl: PropTypes.string,
   inlineImageUploadHeaders: PropTypes.object,
-  showStatusBar: PropTypes.bool.isRequired
+  showStatusBar: PropTypes.bool.isRequired,
+  showAttachmentButton: PropTypes.bool
 }
 
 EasyMDE.defaultProps = {
   height: '150px',
   allowImageUpload: false,
-  showStatusBar: true
+  showStatusBar: true,
+  showAttachmentButton: true
 }
 
 export default EasyMDE

@@ -547,6 +547,7 @@ ticketsController.uploadImageMDE = function (req, res) {
   const chance = new Chance()
   const fs = require('fs-extra')
   const Busboy = require('busboy')
+  const async = require('async')
   const busboy = Busboy({
     headers: req.headers,
     limits: {
@@ -557,6 +558,7 @@ ticketsController.uploadImageMDE = function (req, res) {
 
   const object = {}
   let error
+  const events = []
 
   object.ticketId = req.headers.ticketid
   if (!object.ticketId) return res.status(400).json({ success: false })
@@ -631,24 +633,29 @@ ticketsController.uploadImageMDE = function (req, res) {
       return file.resume()
     })
 
-    file.pipe(fs.createWriteStream(object.filePath))
+    const fstream = fs.createWriteStream(object.filePath)
+    events.push(function (cb) {
+      fstream.on('finish', cb)
+    })
+
+    file.pipe(fstream)
   })
 
   busboy.on('finish', function () {
-    if (error) return res.status(error.status).send(error.message)
+    async.series(events, function () {
+      if (error) return res.status(error.status).send(error.message)
 
-    if (_.isUndefined(object.ticketId) || _.isUndefined(object.filename) || _.isUndefined(object.filePath)) {
-      return res.status(400).send('Invalid Form Data')
-    }
+      if (_.isUndefined(object.ticketId) || _.isUndefined(object.filename) || _.isUndefined(object.filePath)) {
+        return res.status(400).send('Invalid Form Data')
+      }
+      
+      if (!fs.existsSync(object.filePath)) return res.status(500).send('File Failed to Save to Disk')
 
-    // Everything Checks out lets make sure the file exists and then add it to the attachments array
-    if (!fs.existsSync(object.filePath)) return res.status(500).send('File Failed to Save to Disk')
+      const fileUrl = '/uploads/tickets/' + object.ticketId + '/inline_' + object.filename
 
-    const fileUrl = '/uploads/tickets/' + object.ticketId + '/inline_' + object.filename
-
-    return res.json({ filename: fileUrl, ticketId: object.ticketId })
+      return res.json({ filename: fileUrl, ticketId: object.ticketId })
+    })
   })
-
   req.pipe(busboy)
 }
 
