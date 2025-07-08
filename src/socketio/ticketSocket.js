@@ -24,9 +24,21 @@ var prioritySchema = require('../models/ticketpriority')
 var userSchema = require('../models/user')
 var roleSchema = require('../models/role')
 var permissions = require('../permissions')
+var axios = require('axios')
 var xss = require('xss')
 
 var events = {}
+async function notifyExternalSystemTicketClosed(ticketId) {
+  try {
+      const externalUrl = process.env.ROQIT_BACKEND_URL || 'https://api.app.roqit.com'
+      const endpoint = `${externalUrl}/trudesk/close/${ticketId}`
+      const response = await axios.post(endpoint);
+      return response.data
+  } catch (error) {
+      console.log(`Failed to notify external system for ticket ${ticketId}:`, error.message)
+      return null
+ }
+}
 
 function register (socket) {
   events.onUpdateTicketGrid(socket)
@@ -65,6 +77,9 @@ events.onUpdateTicketStatus = socket => {
       ticket = await ticket.setStatus(ownerId, status)
       ticket = await ticket.save()
       ticket = await ticket.populate('status')
+      if (ticket.status && ticket.status.name && ticket.status.name.toLowerCase() === 'closed') {
+        await notifyExternalSystemTicketClosed(ticketId)
+      }
 
       // emitter.emit('ticket:updated', t)
       utils.sendToAllConnectedClients(io, socketEvents.TICKETS_UI_STATUS_UPDATE, {

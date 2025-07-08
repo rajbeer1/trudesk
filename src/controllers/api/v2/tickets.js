@@ -19,8 +19,20 @@ const apiUtils = require('../apiUtils')
 const Models = require('../../../models')
 const permissions = require('../../../permissions')
 const ticketStatusSchema = require('../../../models/ticketStatus')
+const axios = require('axios')
 
 const ticketsV2 = {}
+async function notifyExternalSystemTicketClosed(ticketId) {
+    try {
+        const externalUrl = process.env.ROQIT_BACKEND_URL || 'https://api.app.roqit.com'
+        const endpoint = `${externalUrl}/trudesk/close/${ticketId}`
+        const response = await axios.post(endpoint);
+        return response.data
+    } catch (error) {
+        console.log(`Failed to notify external system for ticket ${ticketId}:`, error.message)
+        return null
+   }
+}
 
 ticketsV2.create = function (req, res) {
   const postTicket = req.body
@@ -185,7 +197,17 @@ ticketsV2.batchUpdate = function (req, res) {
           ticket.history.push(HistoryItem)
         }
 
-        return ticket.save(next)
+        return ticket.save(function(err, savedTicket) {
+          if (err) return next(err)
+          if (!_.isUndefined(batchTicket.status)) {
+            ticketStatusSchema.getStatusById(batchTicket.status, function(err, status) {
+              if (!err && status && status.name && status.name.toLowerCase() === 'closed') {
+                notifyExternalSystemTicketClosed(savedTicket._id)
+              }
+            })
+          }
+          next()
+        })
       })
     },
     function (err) {
