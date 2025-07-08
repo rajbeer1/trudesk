@@ -71,9 +71,9 @@ function launchInstallServer () {
   })
 }
 
-if (nconf.get('install') || (!configExists && !isDocker)) {
-  launchInstallServer()
-}
+// if (nconf.get('install') || (!configExists && !isDocker)) {
+//   launchInstallServer()
+// }
 
 function loadConfig () {
   nconf.file({
