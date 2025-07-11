@@ -113,8 +113,8 @@ class PermissionBody extends React.Component {
       { title: 'Notes', perm: 'notes' },
       { title: 'Manage Public Tickets', perm: 'public' },
       { title: 'Can View All Tickets in Assigned Groups', perm: 'viewall' },
-      { title: 'Close Tickets', perm: 'close' },
-      { title: 'Edit Ticket state (Other than close)', perm: 'editopen' }
+      { title: 'Service Provider', perm: 'serviceprovider' },
+      { title: 'Service Recipient', perm: 'servicerecipient' }
     ]
   }
 

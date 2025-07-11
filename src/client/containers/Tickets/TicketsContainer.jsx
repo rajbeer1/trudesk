@@ -276,24 +276,7 @@ class TicketsContainer extends React.Component {
                     this.props.showModal('FILTER_TICKET')
                   }}
                 />
-                <DropdownTrigger pos={'bottom-right'} offset={5} extraClass={'uk-float-left'}>
-                  <PageTitleButton fontAwesomeIcon={'fa-tasks'} />
-                  <Dropdown small={true} width={120}>
-                    <DropdownItem text={'Create'} onClick={() => this.props.showModal('CREATE_TICKET')} />
-                    <DropdownSeparator />
-                    {this.props.ticketStatuses.map(s => (
-                      <DropdownItem
-                        key={s.get('_id')}
-                        text={'Set ' + s.get('name')}
-                        onClick={() => this.onSetStatus(s)}
-                      />
-                    ))}
-                    {helpers.canUser('tickets:delete', true) && <DropdownSeparator />}
-                    {helpers.canUser('tickets:delete', true) && (
-                      <DropdownItem text={'Delete'} extraClass={'text-danger'} onClick={() => this.onDeleteClicked()} />
-                    )}
-                  </Dropdown>
-                </DropdownTrigger>
+
                 <div className={'uk-float-right'}>
                   <div
                     id={'ticket-search-box'}

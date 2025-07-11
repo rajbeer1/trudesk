@@ -37,7 +37,7 @@
 
  plugins:manage                 = user can add/remove Plugins
  */
-var roles = {
+ var roles = {
   admin: {
     id: 'admin',
     name: 'Administrator',
@@ -51,7 +51,7 @@ var roles = {
     allowedAction: [
       'mod:*',
       'dashboard:*',
-      'tickets:create edit view attachment removeAttachment close editopen',
+      'tickets:create edit view attachment removeAttachment serviceprovider servicerecipient',
       'comment:*',
       'notes:*',
       'reports:view'
@@ -75,7 +75,7 @@ var roles = {
     id: 'user',
     name: 'User',
     description: 'User',
-    allowedAction: ['tickets:create editSelf attachment print viewall close editopen', 'comment:create editSelf']
+    allowedAction: ['tickets:create editSelf attachment print viewall serviceprovider servicerecipient', 'comment:create editSelf']
   }
 }
 

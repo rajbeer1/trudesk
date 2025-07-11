@@ -89,23 +89,36 @@ class StatusSelector extends React.Component {
       ? this.props.ticketStatuses.find(s => s.get('_id') === this.status)
       : null
 
-    // Filter statuses based on permissions
-    const canCloseTicket = helpers.canUser('tickets:close')
-    const canEditOpenTicket = helpers.canUser('tickets:editopen')
-    console.log('User role grants:', window.trudeskSessionService?.getUser()?.role?.grants || 'No grants found')
+    const serviceRecipient = helpers.canUser('tickets:servicerecipient')
+    const serviceProvider = helpers.canUser('tickets:serviceprovider')
     
     const filteredStatuses = this.props.ticketStatuses
       ? this.props.ticketStatuses.filter(s => {
-          console.log('Status:', s.get('name'), 'isResolved:', s.get('isResolved'))
-          // If status is resolved (close status) and user doesn't have close permission, hide it
+        if(s.get('name')==='Open'){
+          return true;
+        }
           if (s.get('isResolved') === true) {
-            return canCloseTicket;
+            return serviceRecipient;
           } else {
-            // For open statuses, check edit open permission
-            return canEditOpenTicket;
+            return serviceProvider;
           } 
         })
       : this.props.ticketStatuses
+    
+
+    const getDisplayName = (status) => {
+      const slatimer = status.get('slatimer')
+      const isResolved =status.get('isResolved')
+      const name = status.get('name')
+      if (!slatimer && !isResolved) {
+        if (serviceProvider) {
+          return 'Awaiting Approval'
+        } else if (serviceRecipient) {
+          return 'Response Required'
+        }
+      }
+      return name
+    }
 
     return (
       <div className='floating-ticket-status'>
@@ -116,11 +129,11 @@ class StatusSelector extends React.Component {
           onClick={e => this.toggleDropMenu(e)}
           ref={r => (this.selectorButton = r)}
         >
-          <span>{currentStatus != null ? currentStatus.get('name') : 'Unknown'}</span>
+          <span>{currentStatus != null ? getDisplayName(currentStatus) : 'Unknown'}</span>
         </div>
 
         {this.props.hasPerm && (
-          <span className='drop-icon material-icons' style={{ left: 'auto', right: 22, bottom: -18 }}>
+          <span className='drop-icon material-icons' style={{ left: 'auto', right: 44, bottom: -18 }}>
             keyboard_arrow_down
           </span>
         )}
@@ -141,7 +154,7 @@ class StatusSelector extends React.Component {
                     onClick={() => this.changeStatus(s.get('_id'))}
                     style={{ color: 'white', background: s.get('htmlColor') }}
                   >
-                    <span>{s.get('name')}</span>
+                    <span>{getDisplayName(s)}</span>
                   </li>
                 )
             )}
