@@ -113,7 +113,8 @@ const ticketSchema = mongoose.Schema({
   notes: [noteSchema],
   attachments: [attachmentSchema],
   history: [historySchema],
-  subscribers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'accounts' }]
+  subscribers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'accounts' }],
+  slaPausedTime: { type: Number, default: 0 }
 })
 
 ticketSchema.index({ deleted: -1, group: 1, status: 1 })
@@ -129,6 +130,10 @@ ticketSchema.pre('findOne', autoPopulate).pre('find', autoPopulate)
 ticketSchema.pre('save', function (next) {
   this.subject = utils.sanitizeFieldPlainText(this.subject.trim())
   this.wasNew = this.isNew
+
+  if (!this.isNew) {
+    this.updated = new Date()
+  }
 
   if (!_.isUndefined(this.uid) || this.uid) {
     return next()
@@ -230,7 +235,7 @@ ticketSchema.virtual('commentsAndNotes').get(function () {
  *      2 - Pending
  *      3 - Closed
  */
-ticketSchema.methods.setStatus = function (ownerId, status, callback) {
+ticketSchema.methods.setStatus = function (ownerId, status, previousStatus, callback) {
   const self = this
   return new Promise((resolve, reject) => {
     if (_.isUndefined(status)) {
@@ -248,6 +253,12 @@ ticketSchema.methods.setStatus = function (ownerId, status, callback) {
       if (!status) {
         if (typeof callback === 'function') return callback('Invalid Status')
         return reject(new Error('Invalid Status'))
+      }
+      if (statusModel.slatimer && previousStatus && !previousStatus.slatimer) {
+        const now = new Date()
+        const lastUpdate = self.updated || new Date()
+        const pauseDuration = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60)) 
+        self.slaPausedTime = (self.slaPausedTime || 0) + pauseDuration
       }
 
       self.closedDate = statusModel.isResolved ? new Date() : null
@@ -1303,7 +1314,7 @@ ticketSchema.statics.getOverdue = function (grpId, callback) {
             status: { $in: statuses },
             deleted: false
           })
-          .select('_id date updated')
+          .select('_id date updated slaPausedTime')
           .lean()
           .exec(next)
       },
@@ -1316,6 +1327,7 @@ ticketSchema.statics.getOverdue = function (grpId, callback) {
               if (key === 'priority') result.overdueIn = value.overdueIn
               if (key === 'date') result.date = value
               if (key === 'updated') result.updated = value
+              if (key === 'slaPausedTime') result.slaPausedTime = value
             },
             {}
           )
@@ -1326,20 +1338,17 @@ ticketSchema.statics.getOverdue = function (grpId, callback) {
       function (tickets, next) {
         const now = new Date()
         let ids = _.filter(tickets, function (t) {
-          if (!t.date && !t.updated) {
+          if (!t.date ) {
             return false
           }
 
           let timeout
-          if (t.updated) {
-            const updated = new Date(t.updated)
-            timeout = new Date(updated)
-            timeout.setMinutes(updated.getMinutes() + t.overdueIn)
-          } else {
             const date = new Date(t.date)
             timeout = new Date(date)
             timeout.setMinutes(date.getMinutes() + t.overdueIn)
-          }
+            if(t.slaPausedTime>0){
+              timeout.setMinutes(timeout.getMinutes() + t.slaPausedTime)
+            }
 
           return now > timeout
         })

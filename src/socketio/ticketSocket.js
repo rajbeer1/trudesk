@@ -74,7 +74,8 @@ events.onUpdateTicketStatus = socket => {
     // winston.debug('Received Status')
     try {
       let ticket = await ticketSchema.getTicketById(ticketId)
-      ticket = await ticket.setStatus(ownerId, status)
+      const previousStatus = ticket.status;
+      ticket = await ticket.setStatus(ownerId, status,previousStatus)
       ticket = await ticket.save()
       ticket = await ticket.populate('status')
       if (ticket.status && ticket.status.name && ticket.status.name.toLowerCase() === 'closed') {

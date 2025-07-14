@@ -351,13 +351,11 @@ class TicketsContainer extends React.Component {
                   if (!this.props.common.viewdata.get('showOverdue') || [2, 3].indexOf(ticket.get('status')) !== -1)
                     return false
                   const overdueIn = ticket.getIn(['priority', 'overdueIn'])
-                  const now = moment()
-                  let updated = ticket.get('updated')
-                  if (updated) updated = moment(updated)
-                  else updated = moment(ticket.get('date'))
-
-                  const timeout = updated.clone().add(overdueIn, 'm')
-                  return now.isAfter(timeout)
+                  const now = new Date()
+                  const start = new Date(ticket.get('date'))
+                  let timeout = new Date(start)
+                  timeout.setMinutes(start.getMinutes() + overdueIn + ticket.get('slaPausedTime'))
+                  return now>timeout
                 }
 
                 return (
