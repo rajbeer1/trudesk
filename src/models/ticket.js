@@ -260,7 +260,9 @@ ticketSchema.methods.setStatus = function (ownerId, status, previousStatus, call
 
       self.closedDate = statusModel.isResolved ? new Date() : null
       self.status = status
-      self.statusUpdatedAt = new Date();
+      if(statusModel.slatimer !== previousStatus.slatimer){
+        self.statusUpdatedAt = new Date();
+      }
 
       const historyItem = {
         action: 'ticket:set:status:' + statusModel.name,
