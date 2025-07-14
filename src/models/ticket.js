@@ -114,7 +114,8 @@ const ticketSchema = mongoose.Schema({
   attachments: [attachmentSchema],
   history: [historySchema],
   subscribers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'accounts' }],
-  slaPausedTime: { type: Number, default: 0 }
+  slaPausedTime: { type: Number, default: 0 },
+  statusUpdatedAt: { type: Date }
 })
 
 ticketSchema.index({ deleted: -1, group: 1, status: 1 })
@@ -130,10 +131,6 @@ ticketSchema.pre('findOne', autoPopulate).pre('find', autoPopulate)
 ticketSchema.pre('save', function (next) {
   this.subject = utils.sanitizeFieldPlainText(this.subject.trim())
   this.wasNew = this.isNew
-
-  if (!this.isNew) {
-    this.updated = new Date()
-  }
 
   if (!_.isUndefined(this.uid) || this.uid) {
     return next()
@@ -256,13 +253,14 @@ ticketSchema.methods.setStatus = function (ownerId, status, previousStatus, call
       }
       if (statusModel.slatimer && previousStatus && !previousStatus.slatimer) {
         const now = new Date()
-        const lastUpdate = self.updated || new Date()
+        const lastUpdate = self.statusUpdatedAt || new Date()
         const pauseDuration = Math.floor((now.getTime() - lastUpdate.getTime()) / (1000 * 60)) 
         self.slaPausedTime = (self.slaPausedTime || 0) + pauseDuration
       }
 
       self.closedDate = statusModel.isResolved ? new Date() : null
       self.status = status
+      self.statusUpdatedAt = new Date();
 
       const historyItem = {
         action: 'ticket:set:status:' + statusModel.name,
