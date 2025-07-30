@@ -1504,7 +1504,7 @@ define([
     })
     return moment
       .utc(date)
-      .tz(this.getTimezone())
+      .tz(helpers.getTimezone())
       .calendar()
   }
 
@@ -1543,7 +1543,7 @@ define([
   }
 
   helpers.formatDate = function (date, format, isUTC) {
-    const timezone = this.getTimezone()
+    const timezone = helpers.getTimezone()
 
     if (isUTC)
       return moment(date)

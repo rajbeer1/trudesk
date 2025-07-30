@@ -76,12 +76,14 @@ const ReportTicketsByPriorities = () => {
     e.preventDefault()
     if (isLoading) return
     setIsLoading(true)
+    const startMoment = moment(startDate, helpers.getShortDateFormat(), true)
+    const endMoment = moment(endDate, helpers.getShortDateFormat(), true)
     dispatch(
       generateReport({
         type: 'tickets_by_priority',
-        filename: `report_tickets_by_priority__${moment(startDate).format('MMDDYYYY')}`,
-        startDate,
-        endDate,
+        filename: `report_tickets_by_priority__${startMoment.format('MMDDYYYY')}`,
+        startDate: startMoment.toDate(),
+        endDate: endMoment.toDate(),
         groups: selectedGroups,
         priorities: selectedPriorities
       })

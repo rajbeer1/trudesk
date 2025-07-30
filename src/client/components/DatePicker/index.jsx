@@ -26,7 +26,14 @@ class DatePicker extends React.Component {
   }
 
   componentDidUpdate () {
-    if (this.props.value) $(this.datepicker).val(helpers.formatDate(this.props.value, this.props.format))
+    if (this.props.value) {
+      let parsedValue = this.props.value
+      const momentObj = moment(this.props.value, this.props.format, true)
+      if (momentObj.isValid()) {
+        parsedValue = momentObj.toDate()
+      }
+      $(this.datepicker).val(helpers.formatDate(parsedValue, this.props.format))
+    }
     if (this.props.value === undefined) $(this.datepicker).val('')
   }
 
@@ -49,7 +56,13 @@ class DatePicker extends React.Component {
           data-uk-datepicker={`{format:'${this.props.format}'}`}
           data-validation={validation}
           style={this.style || { width: '97%' }}
-          defaultValue={value ? helpers.formatDate(value, this.props.format) : ''}
+          defaultValue={value ? (() => {
+            const momentObj = moment(value, this.props.format, true)
+            if (momentObj.isValid()) {
+              return helpers.formatDate(momentObj.toDate(), this.props.format)
+            }
+            return helpers.formatDate(value, this.props.format)
+          })() : ''}
         />
       </Fragment>
     )

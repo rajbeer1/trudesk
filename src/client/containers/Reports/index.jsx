@@ -75,42 +75,6 @@ class ReportsContainer extends React.Component {
                           Tickets by Priorities
                         </a>
                       </li>
-                      <li>
-                        <a
-                          href='#'
-                          className={'no-ajaxy'}
-                          onClick={e => this.onSelectReportClicked(e, 'tickets_by_status')}
-                        >
-                          Tickets by Status
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href='#'
-                          className={'no-ajaxy'}
-                          onClick={e => this.onSelectReportClicked(e, 'tickets_by_tags')}
-                        >
-                          Tickets by Tags
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href='#'
-                          className={'no-ajaxy'}
-                          onClick={e => this.onSelectReportClicked(e, 'tickets_by_types')}
-                        >
-                          Tickets by Types
-                        </a>
-                      </li>
-                      <li>
-                        <a
-                          href='#'
-                          className={'no-ajaxy'}
-                          onClick={e => this.onSelectReportClicked(e, 'tickets_by_assignee')}
-                        >
-                          Tickets by Assignee
-                        </a>
-                      </li>
                     </ul>
                   </div>
                 </div>

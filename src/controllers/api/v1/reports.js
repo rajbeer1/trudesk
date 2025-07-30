@@ -180,7 +180,11 @@ apiReports.generate.ticketsByPriority = function (req, res) {
             limit: -1,
             page: 0,
             filter: {
-              priority: postData.priorities
+              priority: postData.priorities,
+              date: {
+                start: postData.startDate,
+                end: postData.endDate
+              }
             }
           },
           function (err, tickets) {

@@ -55,12 +55,14 @@ const ReportTicketByGroups = () => {
 
   const onFormSubmit = e => {
     e.preventDefault()
+    const startMoment = moment(startDate, helpers.getShortDateFormat(), true)
+    const endMoment = moment(endDate, helpers.getShortDateFormat(), true)
     dispatch(
       generateReport({
         type: 'tickets_by_group',
-        filename: `report_tickets_by_group__${moment(startDate).format('MMDDYYYY')}`,
-        startDate,
-        endDate,
+        filename: `report_tickets_by_group__${startMoment.format('MMDDYYYY')}`,
+        startDate: startMoment.toDate(),
+        endDate: endMoment.toDate(),
         groups: selectedGroups
       })
     )
