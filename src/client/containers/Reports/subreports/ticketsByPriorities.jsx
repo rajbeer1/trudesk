@@ -61,7 +61,6 @@ const ReportTicketsByPriorities = () => {
 
   useEffect(() => {
     const g = groupsState.groups.map(group => ({ text: group.get('name'), value: group.get('_id') })).toArray()
-    g.push({ text: 'All', value: 'all' })
     setGroups(g)
   }, [groupsState])
 

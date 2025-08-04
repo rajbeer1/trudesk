@@ -618,10 +618,27 @@ apiReports.generate.ticketsByAssignee = function (req, res) {
   )
 }
 
+function extractVehicleInfo(issueContent) {
+  if (!issueContent) return { vin: '', licensePlate: '', hub: '' }
+  
+  const vinMatch = issueContent.match(/<strong>VIN:<\/strong>\s*([^<]+)/i)
+  const licensePlateMatch = issueContent.match(/<strong>License Plate:<\/strong>\s*([^<]+)/i)
+  const hubMatch = issueContent.match(/<strong>Hub:<\/strong>\s*([^<]+)/i)
+  
+  return {
+    vin: vinMatch ? vinMatch[1].trim() : '',
+    licensePlate: licensePlateMatch ? licensePlateMatch[1].trim() : '',
+    hub: hubMatch ? hubMatch[1].trim() : ''
+  }
+}
+
 function processReportData (tickets) {
+  console.log(tickets)
   const input = []
   for (let i = 0; i < tickets.length; i++) {
     const ticket = tickets[i]
+
+    const vehicleInfo = extractVehicleInfo(ticket.issue)
 
     const t = []
     t.push(ticket.uid)
@@ -630,6 +647,9 @@ function processReportData (tickets) {
     t.push(ticket.statusFormatted)
     t.push(moment(ticket.date).format('MMM DD, YY HH:mm:ss'))
     t.push(ticket.subject)
+    t.push(vehicleInfo.vin)
+    t.push(vehicleInfo.licensePlate)
+    t.push(vehicleInfo.hub)
     t.push(ticket.owner.fullname)
     t.push(ticket.group.name)
     if (ticket.assignee) {
@@ -663,6 +683,9 @@ function processResponse (res, input) {
     status: 'status',
     created: 'created',
     subject: 'subject',
+    vin: 'chassis number',
+    licensePlate: 'registration number',
+    hub: 'hub',
     requester: 'requester',
     group: 'group',
     assignee: 'assignee',
